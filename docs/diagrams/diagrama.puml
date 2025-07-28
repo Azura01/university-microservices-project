@@ -1,0 +1,238 @@
+@startuml
+' UML 2.5 Class Diagram – PoliMarket Enterprise – v2 (con mejoras de auditoría y trazabilidad)
+'------------------------------------------------------------------------------
+skinparam classAttributeIconSize 0
+hide methods
+'------------------------------------------------------------------------------
+
+' ============================= Paquetes =============================
+package "Recursos Humanos" <<Layer>> {
+  class Employee {
+    +id : UUID
+    +name : string
+    +role : EmployeeRole
+    +status : EmploymentStatus
+    +createdAt : datetime
+    +updatedAt : datetime
+  }
+
+  class Salesperson {
+    +salesQuota : decimal
+  }
+  Employee <|-- Salesperson
+
+  class Authorization {
+    +id : UUID
+    +issuedOn : datetime
+    +validUntil : datetime
+    +status : AuthorizationStatus
+  }
+
+  class AuthorizationEvent {
+    +id : UUID
+    +eventDate : datetime
+    +eventType : AuthorizationEventType
+  }
+
+  ' Relaciones de agregado de autorización
+  Authorization  "1" -- "1..*" AuthorizationEvent : historiza >
+  Authorization  "1" --> "1" Salesperson          : autorizado
+  Authorization  "1" --> "1" Employee             : grantedBy
+}
+
+package "Proveedores" <<Layer>> {
+  class Supplier {
+    +id : UUID
+    +name : string
+    +contactInfo : string
+    +createdAt : datetime
+    +updatedAt : datetime
+  }
+}
+
+package "Bodega" <<Layer>> {
+  class Warehouse {
+    +id : UUID
+    +name : string
+    +address : string
+    +createdAt : datetime
+    +updatedAt : datetime
+  }
+
+  class InventoryItem {
+    +id : UUID
+    +quantityOnHand : int
+    +reorderPoint : int
+    +location : string
+    +updatedAt : datetime
+  }
+
+  class PurchaseOrder {
+    +id : UUID
+    +issuedOn : datetime
+    +status : PurchaseOrderStatus
+    +createdAt : datetime
+    +updatedAt : datetime
+  }
+
+  class PurchaseOrderLine {
+    +quantity : int
+    +unitCost : decimal
+  }
+
+  class StockMovement {
+    +id : UUID
+    +movementDate : datetime
+    +quantity : int
+    +movementType : StockMovementType
+  }
+
+  Warehouse      "1"   --  "1..*" InventoryItem      : almacena >
+  Warehouse      "1"   --  "1..*" PurchaseOrder      : genera >
+  PurchaseOrder  "1"   --  "1..*" PurchaseOrderLine  : contiene >
+  PurchaseOrderLine "*" --> "1" Product              : producto
+  PurchaseOrder  "*"   --> "1" Supplier              : proveedor
+  InventoryItem  "*"  --> "1" Product               : producto
+
+  ' Trazabilidad de movimientos
+  Warehouse       "1" -- "1..*" StockMovement : origenDestino >
+  Product         "1" -- "1..*" StockMovement : afecta >
+  StockMovement   "*" --> "1" PurchaseOrderLine : entrada
+  StockMovement   "*" --> "1" DeliveryItem      : salida
+}
+
+package "Ventas" <<Layer>> {
+  class Customer {
+    +id : UUID
+    +name : string
+    +contactInfo : string
+    +tier : CustomerTier
+    +createdAt : datetime
+  }
+
+  class SalesOrder {
+    +id : UUID
+    +orderDate : datetime
+    +status : SalesOrderStatus
+    +totalAmount : decimal [derived]
+    +createdAt : datetime
+    +updatedAt : datetime
+  }
+
+  class SalesOrderLine {
+    +quantity : int
+    +unitPrice : decimal
+  }
+
+  SalesOrder      "1"   --  "1..*" SalesOrderLine : contiene >
+  SalesOrder      "*"   --> "1" Customer        : cliente
+  SalesOrder      "*"   --> "1" Salesperson     : vendedor
+  SalesOrderLine  "*"   --> "1" Product         : producto
+}
+
+package "Entregas" <<Layer>> {
+  class Delivery {
+    +id : UUID
+    +deliveryDate : datetime
+    +status : DeliveryStatus
+    +trackingNumber : string
+    +createdAt : datetime
+  }
+
+  class DeliveryItem {
+    +quantity : int
+  }
+
+  Delivery       "1"   --  "1..*" DeliveryItem : incluye >
+  DeliveryItem   "*"   --> "1" Product       : producto
+  Delivery       "*"   --> "1" SalesOrder    : pedido
+  Delivery       "*"   --> "1" Warehouse     : origenStock
+}
+
+package "Catálogo" <<Layer>> {
+  class Product {
+    +sku : string
+    +name : string
+    +description : string
+    +unitPrice : decimal
+    +unitMeasure : UnitMeasure
+    +createdAt : datetime
+    +updatedAt : datetime
+  }
+
+  class SupplierProduct {
+    +purchasePrice : decimal
+    +leadTimeDays : int
+  }
+
+  Supplier "1" -- "*" SupplierProduct
+  Product  "1" -- "*" SupplierProduct
+}
+
+' ============================= Enumerations =============================
+' Baseline enums + nuevos tipos para eventos y movimientos
+enum EmployeeRole {
+  HR
+  SALES
+  WAREHOUSE
+  DELIVERY
+}
+
+enum AuthorizationStatus {
+  PENDING
+  ACTIVE
+  REVOKED
+}
+
+enum AuthorizationEventType {
+  CREATED
+  RENEWED
+  REVOKED
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  SENT
+  RECEIVED
+  CANCELLED
+}
+
+enum SalesOrderStatus {
+  CREATED
+  CONFIRMED
+  INVOICED
+  CLOSED
+  CANCELLED
+}
+
+enum DeliveryStatus {
+  PENDING
+  IN_TRANSIT
+  DELIVERED
+  RETURNED
+}
+
+enum StockMovementType {
+  INBOUND
+  OUTBOUND
+}
+
+enum UnitMeasure {
+  EACH
+  KG
+  LITER
+}
+
+enum CustomerTier {
+  STANDARD
+  GOLD
+  PLATINUM
+}
+
+@enduml
