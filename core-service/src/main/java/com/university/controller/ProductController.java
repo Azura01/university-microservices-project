@@ -4,9 +4,11 @@ import com.university.model.Product;
 import com.university.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/products")
@@ -17,22 +19,23 @@ public class ProductController {
     private ProductService productService;
     
     @GetMapping
+    @Transactional(readOnly = true)  // Add this annotation
     public ResponseEntity<List<Product>> getAllProducts() {
         return ResponseEntity.ok(productService.getAllProducts());
     }
     
     @GetMapping("/{id}")
     public ResponseEntity<Product> getProductById(@PathVariable Long id) {
-        Product product = productService.getProductById(id);
-        if (product != null) {
-            return ResponseEntity.ok(product);
+        Optional<Product> product = productService.getProductById(id);
+        if (product.isPresent()) {
+            return ResponseEntity.ok(product.get());
         }
         return ResponseEntity.notFound().build();
     }
     
     @PostMapping
     public ResponseEntity<Product> createProduct(@RequestBody Product product) {
-        Product savedProduct = productService.saveProduct(product);
+        Product savedProduct = productService.createProduct(product);
         return ResponseEntity.ok(savedProduct);
     }
     
@@ -48,9 +51,7 @@ public class ProductController {
     
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
-        if (productService.deleteProduct(id)) {
-            return ResponseEntity.ok().build();
-        }
-        return ResponseEntity.notFound().build();
+        productService.deleteProduct(id);
+        return ResponseEntity.ok().build();
     }
 }

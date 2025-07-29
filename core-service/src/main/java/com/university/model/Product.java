@@ -21,9 +21,9 @@ public class Product {
     @Column(nullable = false)
     private Integer quantity;
     
-    @ManyToOne(fetch = FetchType.EAGER)  // ← CAMBIAR DE LAZY A EAGER
+    @ManyToOne(fetch = FetchType.EAGER)  // Change from LAZY to EAGER
     @JoinColumn(name = "supplier_id")
-    @JsonIgnoreProperties({"products"})
+    @JsonIgnoreProperties({"products", "hibernateLazyInitializer", "handler"})
     private Supplier supplier;
     
     // Constructores

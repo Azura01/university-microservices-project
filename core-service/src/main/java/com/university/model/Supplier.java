@@ -1,6 +1,6 @@
 package com.university.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.util.List;
 
@@ -20,8 +20,8 @@ public class Supplier {
     private String phone;
     private String address;
     
-    @OneToMany(mappedBy = "supplier", cascade = CascadeType.ALL, fetch = FetchType.EAGER)  // ← CAMBIAR DE LAZY A EAGER
-    @JsonIgnoreProperties({"supplier"})
+    @OneToMany(mappedBy = "supplier", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<Product> products;
     
     // Constructores
